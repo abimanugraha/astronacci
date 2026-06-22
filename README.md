@@ -5,6 +5,7 @@
   <img alt="Node.js" src="https://img.shields.io/badge/Node.js-Required-339933?logo=node.js&logoColor=white">
   <img alt="Vite" src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white">
   <img alt="TailwindCSS" src="https://img.shields.io/badge/TailwindCSS-4-38BDF8?logo=tailwindcss&logoColor=white">
+  <img alt="DaisyUI" src="https://img.shields.io/badge/DaisyUI-5-7C3AED?logo=daisyui&logoColor=white">
   <img alt="License" src="https://img.shields.io/badge/License-MIT-blue.svg">
 </p>
 
