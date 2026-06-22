@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    image: astronacci-backend:latest
+    container_name: astronacci-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - DB_CONNECTION=sqlite
+    command: php artisan serve --host=0.0.0.0 --port=8000

@@ -1,0 +1,16 @@
+**/node_modules
+**/vendor
+.git
+.gitignore
+**/.env
+**/*.sqlite
+**/*.sqlite3
+backend/storage/logs/*
+backend/storage/framework/cache/data/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+frontend/dist
+docs/
+docker-compose.yml
+Dockerfile
+.dockerignore
