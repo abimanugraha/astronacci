@@ -21,6 +21,68 @@ detect_host_ip() {
   echo "${ip:-localhost}"
 }
 
+ensure_frontend_env() {
+  local env_file="frontend/.env"
+  local ip; ip=$(detect_host_ip)
+  local desired="VITE_API_BASE_URL=http://${ip}:8000"
+
+  if [ ! -f "$env_file" ]; then
+    info "Membuat ${env_file} -> ${desired}"
+    echo "${desired}" > "$env_file"
+    return
+  fi
+
+  if grep -q "^VITE_API_BASE_URL=http://${ip}:8000\$" "$env_file"; then
+    info "frontend/.env sudah benar (IP: ${ip})"
+    return
+  fi
+
+  if grep -q "^VITE_API_BASE_URL=" "$env_file"; then
+    warn "Update VITE_API_BASE_URL -> http://${ip}:8000 di ${env_file}"
+    sed -i "s|^VITE_API_BASE_URL=.*|${desired}|" "$env_file"
+  else
+    warn "Tambah ${desired} ke ${env_file}"
+    echo "${desired}" >> "$env_file"
+  fi
+}
+
+patch_cors() {
+  local cors_file="backend/config/cors.php"
+  local ip; ip=$(detect_host_ip)
+  local origin="http://${ip}:5173"
+
+  if [ ! -f "$cors_file" ]; then
+    warn "File ${cors_file} tidak ditemukan, skip patch CORS"
+    return
+  fi
+
+  if grep -q "'${origin}'" "$cors_file"; then
+    info "CORS sudah include origin ${origin}"
+    return
+  fi
+
+  local marker_ln
+  marker_ln=$(grep -n "'allowed_origins'" "$cors_file" | head -n1 | cut -d: -f1)
+  if [ -z "$marker_ln" ]; then
+    warn "Marker 'allowed_origins' tidak ditemukan di ${cors_file}, skip"
+    return
+  fi
+  local close_ln
+  close_ln=$(awk -v start="$marker_ln" 'NR > start && /^[[:space:]]*\],[[:space:]]*$/ {print NR; exit}' "$cors_file")
+  if [ -z "$close_ln" ]; then
+    warn "Tidak bisa temukan penutup array allowed_origins, skip"
+    return
+  fi
+
+  info "Menambahkan ${origin} ke allowed_origins di ${cors_file}"
+  sed -i "${close_ln}i\\        '${origin}'," "$cors_file"
+}
+
+ensure_config() {
+  ensure_frontend_env
+  patch_cors
+}
+
 check_deps() {
   if ! command -v docker >/dev/null 2>&1; then
     error "Docker tidak ditemukan. Install: https://docs.docker.com/get-docker/"
@@ -38,11 +100,20 @@ cmd_build() {
 }
 
 cmd_up() {
+  ensure_config
   info "Starting container..."
   docker compose up -d
   local ip; ip=$(detect_host_ip)
   info "Backend : http://${ip}:8000"
   info "Frontend: http://${ip}:5173"
+}
+
+cmd_config() {
+  ensure_config
+  if docker compose ps app 2>/dev/null | grep -q "astronacci-app"; then
+    info "Container sedang berjalan — restart agar perubahan efektif:"
+    info "  ./setup.sh down && ./setup.sh up   (atau)   docker compose restart"
+  fi
 }
 
 cmd_down() {
@@ -75,7 +146,8 @@ Usage: ./setup.sh [command]
 Commands:
   (no command)  build + up (first-time setup)
   build         Build Docker image
-  up            Start container in background
+  up            Start container in background (auto-generate frontend/.env & patch CORS)
+  config        Generate frontend/.env & patch CORS tanpa start container
   down          Stop container
   logs          Tail container logs (Ctrl+C to exit)
   ssh           Masuk ke shell container
@@ -91,6 +163,7 @@ main() {
   case "$cmd" in
     build)  cmd_build ;;
     up)     cmd_up ;;
+    config) cmd_config ;;
     down)   cmd_down ;;
     logs)   cmd_logs ;;
     ssh)    cmd_ssh ;;

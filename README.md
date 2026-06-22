@@ -20,20 +20,35 @@ Prasyarat: Docker + Docker Compose v2.
 ./setup.sh
 ```
 
-Container menjalankan backend + frontend + SQLite sekaligus. Script akan otomatis mendeteksi IP server dan mencetak URL yang bisa diakses dari device lain di jaringan.
+Container menjalankan backend + frontend + SQLite sekaligus. Script akan otomatis:
+
+- Mendeteksi IP server dan mencetak URL yang bisa diakses dari device lain di jaringan.
+- Membuat `frontend/.env` dengan `VITE_API_BASE_URL=http://<IP>:8000` (agar frontend request ke IP yang benar, bukan `localhost`).
+- Menambahkan `http://<IP>:5173` ke whitelist `allowed_origins` di `backend/config/cors.php` (mencegah error CORS saat akses cross-device).
+
+Kedua langkah bersifat **idempoten** — aman dijalankan ulang. Untuk re-generate config setelah IP berubah (mis. pindah server), jalankan `./setup.sh config` lalu restart container.
 
 ### Helper `setup.sh`
 
-| Command            | Aksi                                |
-|--------------------|-------------------------------------|
-| `./setup.sh`       | First-time setup: build + up        |
-| `./setup.sh build` | Build image saja                    |
-| `./setup.sh up`    | Start container (sudah di-build)    |
-| `./setup.sh down`  | Stop container                      |
-| `./setup.sh logs`  | Tail log backend + frontend         |
-| `./setup.sh ssh`   | Masuk shell container               |
-| `./setup.sh fresh` | Reset database (`migrate:fresh`)    |
-| `./setup.sh clean` | Hapus container + volume + image    |
+| Command             | Aksi                                              |
+|---------------------|---------------------------------------------------|
+| `./setup.sh`        | First-time setup: build + up + auto-config IP     |
+| `./setup.sh build`  | Build image saja                                  |
+| `./setup.sh up`     | Start container (auto-generate `.env` & patch CORS)|
+| `./setup.sh config` | Generate `frontend/.env` & patch CORS tanpa start |
+| `./setup.sh down`   | Stop container                                    |
+| `./setup.sh logs`   | Tail log backend + frontend                       |
+| `./setup.sh ssh`    | Masuk shell container                             |
+| `./setup.sh fresh`  | Reset database (`migrate:fresh`)                  |
+| `./setup.sh clean`  | Hapus container + volume + image                  |
+
+### Konfigurasi IP & CORS (multi-server)
+
+Setup di atas otomatis jalan saat `./setup.sh` atau `./setup.sh up`. Jika Anda sebelumnya membuat `frontend/.env` manual atau deploy ke server lain dengan IP berbeda, hapus langkah manual dan andalkan `setup.sh`:
+
+1. Hapus file lama (jika IP berubah): `rm frontend/.env`
+2. Jalankan: `./setup.sh down && ./setup.sh` (atau `./setup.sh config` lalu `docker compose restart`)
+3. Hard refresh browser (`Ctrl+Shift+R`) untuk menghapus cache `api.js` versi lama.
 
 ## Manual Setup (per folder)
 
