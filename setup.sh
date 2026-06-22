@@ -10,6 +10,17 @@ info()  { echo -e "${GREEN}==> $1${NC}"; }
 warn()  { echo -e "${YELLOW}==> $1${NC}"; }
 error() { echo -e "${RED}==> ERROR: $1${NC}" >&2; }
 
+detect_host_ip() {
+  local ip
+  ip=$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i=="src") {print $(i+1); exit}}')
+  if [ -z "$ip" ]; then
+    ip=$(hostname -I 2>/dev/null | tr ' ' '\n' \
+       | grep -vE '^(127\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|::)' \
+       | head -n1)
+  fi
+  echo "${ip:-localhost}"
+}
+
 check_deps() {
   if ! command -v docker >/dev/null 2>&1; then
     error "Docker tidak ditemukan. Install: https://docs.docker.com/get-docker/"
@@ -29,8 +40,9 @@ cmd_build() {
 cmd_up() {
   info "Starting container..."
   docker compose up -d
-  info "Backend : http://localhost:8000"
-  info "Frontend: http://localhost:5173"
+  local ip; ip=$(detect_host_ip)
+  info "Backend : http://${ip}:8000"
+  info "Frontend: http://${ip}:5173"
 }
 
 cmd_down() {
