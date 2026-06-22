@@ -144,7 +144,7 @@ cmd_help() {
 Usage: ./setup.sh [command]
 
 Commands:
-  (no command)  build + up (first-time setup)
+  (no command)  config + build + up (first-time setup)
   build         Build Docker image
   up            Start container in background (auto-generate frontend/.env & patch CORS)
   config        Generate frontend/.env & patch CORS tanpa start container
@@ -170,7 +170,7 @@ main() {
     fresh)  cmd_fresh ;;
     clean)  cmd_clean ;;
     help|-h|--help) cmd_help ;;
-    default) cmd_build && cmd_up ;;
+    default) cmd_config && cmd_build && cmd_up ;;
     *) error "Unknown command: $cmd"; echo ""; cmd_help; exit 1 ;;
   esac
 }
